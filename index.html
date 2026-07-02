@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SakuGuru - Sistem Informasi Akademik & Presensi Guru</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="SakuGuru">
+  <link class="pwa-icon" rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2201/2201558.png">
+  
+  <!-- Inline Web Manifest -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"SakuGuru SMAN 3 Rembang","short_name":"SakuGuru","description":"Aplikasi Administrasi %26 Presensi Guru","start_url":".","display":"standalone","orientation":"portrait","background_color":"#f8fafc","theme_color":"#4f46e5","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/2201/2201558.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}' />
+
+  <!-- Tailwind CSS & Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+    .offline-pulse { animation: pulse-red 2s infinite; }
+    @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col md:flex-row antialiased overflow-x-hidden select-none">
+
+  <!-- NOTIFIKASI ELEMENT -->
+  <div id="toast" class="fixed top-5 right-5 z-[60] transform translate-y-[-100px] opacity-0 transition-all duration-300 ease-out max-w-sm w-full bg-white rounded-xl shadow-xl border border-slate-100 p-4 flex items-center space-x-3 pointer-events-none">
+    <div id="toast-icon-wrapper" class="p-2 rounded-lg text-white"><i id="toast-icon" class="fa-solid"></i></div>
+    <div class="flex-1">
+      <p id="toast-title" class="font-bold text-sm text-slate-800"></p>
+      <p id="toast-message" class="text-xs text-slate-500"></p>
+    </div>
+  </div>
+
+  <!-- LOADER SPINNER OVERLAY -->
+  <div id="loading-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] flex flex-col justify-center items-center opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center max-w-xs text-center space-y-4">
+      <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <div>
+        <h4 class="font-bold text-slate-800">Memproses Data...</h4>
+        <p class="text-xs text-slate-500 mt-1">Harap tunggu sebentar, menyinkronkan dengan server.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE SIDEBAR OVERLAY -->
+  <div id="mobile-sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0 duration-300"></div>
+
+  <!-- SIDEBAR (DRAWER UNTUK MOBILE, TETAP UNTUK DESKTOP) -->
+  <aside id="main-sidebar" class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 min-h-screen shrink-0 border-r border-slate-800 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
+    <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-600/30">
+          <i class="fa-solid fa-graduation-cap text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-white text-lg leading-tight">SakuGuru</h1>
+          <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">SMAN 3 Rembang</p>
+        </div>
+      </div>
+      <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white p-2">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+    </div>
+    
+    <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-thin">
+      <button onclick="switchView('dashboard')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="dashboard">
+        <i class="fa-solid fa-house w-5"></i><span>Beranda</span>
+      </button>
+      <button onclick="switchView('classes')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="classes">
+        <i class="fa-solid fa-school w-5"></i><span>Kelola Kelas</span>
+      </button>
+      <button onclick="switchView('students')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="students">
+        <i class="fa-solid fa-user-graduate w-5"></i><span>Kelola Siswa</span>
+      </button>
+      <button onclick="switchView('schedule')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="schedule">
+        <i class="fa-solid fa-calendar-days w-5"></i><span>Jadwal Mengajar</span>
+      </button>
+      <button onclick="switchView('attendance')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="attendance">
+        <i class="fa-solid fa-clipboard-user w-5"></i><span>Presensi Siswa</span>
+      </button>
+      <button onclick="switchView('grades')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="grades">
+        <i class="fa-solid fa-star w-5"></i><span>Penilaian</span>
+      </button>
+      <button onclick="switchView('journal')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60" data-view="journal">
+        <i class="fa-solid fa-book w-5"></i><span>Jurnal Harian</span>
+      </button>
+      
+      <div class="pt-6 pb-2 space-y-1">
+        <div class="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sistem</div>
+        <button id="pwa-install-sidebar" onclick="triggerPwaInstall()" class="hidden w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400">
+          <i class="fa-solid fa-cloud-arrow-down w-5"></i><span>Instal Aplikasi</span>
+        </button>
+        <button onclick="syncData(); toggleSidebar();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-indigo-900/50 text-indigo-400">
+          <i class="fa-solid fa-arrows-rotate w-5"></i><span>Sinkron Cloud</span>
+        </button>
+      </div>
+    </nav>
+    <div class="p-4 border-t border-slate-800">
+      <div id="env-badge" class="flex items-center space-x-2 text-xs px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 transition-colors duration-300">
+        <i class="fa-solid fa-cloud"></i><span class="font-medium">Online Mode</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- APP CONTENT AREA -->
+  <div class="flex-1 flex flex-col min-h-screen relative">
+    
+    <!-- MOBILE NAVIGATION HEADER -->
+    <header class="md:hidden bg-indigo-600 text-white p-3 sticky top-0 z-30 flex items-center justify-between shadow-md">
+      <div class="flex items-center space-x-3">
+        <button onclick="toggleSidebar()" class="p-2 text-white hover:bg-indigo-700 rounded-lg transition focus:outline-none">
+          <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+        <div class="flex items-center space-x-2">
+          <div>
+            <h1 class="font-bold text-sm leading-none">SakuGuru</h1>
+            <p class="text-[10px] text-indigo-200 mt-0.5">SMAN 3 Rembang</p>
+          </div>
+        </div>
+      </div>
+      <div id="mobile-env-badge" class="text-[10px] px-2 py-1 rounded bg-white/20 text-white font-medium flex items-center space-x-1 transition-colors duration-300">
+        <i class="fa-solid fa-cloud text-[9px]"></i> <span>Cloud</span>
+      </div>
+    </header>
+
+    <!-- CONTENT CONTAINER -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full pb-28 md:pb-8">
+      
+      <!-- BERANDA VIEW -->
+      <section id="view-dashboard" class="space-y-6">
+        
+        <!-- PWA INSTALL BANNER -->
+        <div id="pwa-install-banner" class="hidden bg-gradient-to-r from-indigo-600 to-indigo-700 p-5 rounded-3xl text-white shadow-xl shadow-indigo-600/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
+          <div class="relative z-10 space-y-1">
+            <h4 class="font-extrabold text-base flex items-center gap-2">
+              <i class="fa-solid fa-mobile-screen-button"></i><span>Pasang SakuGuru di HP Anda!</span>
+            </h4>
+            <p class="text-xs text-indigo-100">Akses administrasi mengajar lebih cepat langsung dari layar utama tanpa browser.</p>
+          </div>
+          <button onclick="triggerPwaInstall()" class="relative z-10 bg-white text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md whitespace-nowrap">
+            <i class="fa-solid fa-download mr-1.5"></i> Instal Sekarang
+          </button>
+          <i class="fa-solid fa-shapes absolute -right-6 -bottom-6 text-8xl text-white/5"></i>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900">Beranda Utama</h2>
+            <p class="text-sm text-slate-500">Ringkasan aktivitas akademik & administrasi Anda.</p>
+          </div>
+          <div class="hidden md:flex items-center space-x-2">
+            <button onclick="syncData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-600/10 flex items-center space-x-2 transition duration-200">
+              <i class="fa-solid fa-arrows-rotate"></i><span>Sinkron Data</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3 md:space-x-4">
+            <div class="p-2.5 md:p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i class="fa-solid fa-user-graduate text-xl md:text-2xl"></i></div>
+            <div>
+              <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Total Siswa</p>
+              <h3 id="stat-students" class="text-xl md:text-2xl font-black text-slate-800">0</h3>
+            </div>
+          </div>
+          <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3 md:space-x-4">
+            <div class="p-2.5 md:p-3 bg-emerald-50 text-emerald-600 rounded-xl"><i class="fa-solid fa-school text-xl md:text-2xl"></i></div>
+            <div>
+              <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Total Kelas</p>
+              <h3 id="stat-classes" class="text-xl md:text-2xl font-black text-slate-800">0</h3>
+            </div>
+          </div>
+          <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3 md:space-x-4">
+            <div class="p-2.5 md:p-3 bg-amber-50 text-amber-600 rounded-xl"><i class="fa-solid fa-circle-check text-xl md:text-2xl"></i></div>
+            <div>
+              <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Presensi Hari Ini</p>
+              <h3 id="stat-attendance" class="text-xl md:text-2xl font-black text-slate-800">0%</h3>
+            </div>
+          </div>
+          <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3 md:space-x-4">
+            <div class="p-2.5 md:p-3 bg-rose-50 text-rose-600 rounded-xl"><i class="fa-solid fa-star text-xl md:text-2xl"></i></div>
+            <div>
+              <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Rata Nilai</p>
+              <h3 id="stat-grades" class="text-xl md:text-2xl font-black text-slate-800">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- AKSES CEPAT -->
+        <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          <h4 class="font-bold text-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-bolt text-indigo-500"></i><span>Akses Cepat</span>
+          </h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button onclick="switchView('attendance')" class="p-4 bg-slate-50 hover:bg-indigo-50/50 hover:text-indigo-600 rounded-xl text-left border border-slate-100 transition space-y-2">
+              <i class="fa-solid fa-clipboard-user text-lg"></i>
+              <p class="font-bold text-sm block">Input Presensi</p>
+              <span class="text-[11px] text-slate-400 block hidden md:block">Absen siswa hari ini</span>
+            </button>
+            <button onclick="switchView('grades')" class="p-4 bg-slate-50 hover:bg-emerald-50/50 hover:text-emerald-600 rounded-xl text-left border border-slate-100 transition space-y-2">
+              <i class="fa-solid fa-file-invoice text-lg"></i>
+              <p class="font-bold text-sm block">Nilai & Bab</p>
+              <span class="text-[11px] text-slate-400 block hidden md:block">Rekam nilai formatif</span>
+            </button>
+            <button onclick="switchView('journal')" class="p-4 bg-slate-50 hover:bg-amber-50/50 hover:text-amber-600 rounded-xl text-left border border-slate-100 transition space-y-2">
+              <i class="fa-solid fa-pencil text-lg"></i>
+              <p class="font-bold text-sm block">Tulis Jurnal</p>
+              <span class="text-[11px] text-slate-400 block hidden md:block">Agenda KBM & evaluasi</span>
+            </button>
+            <button onclick="switchView('students')" class="p-4 bg-slate-50 hover:bg-violet-50/50 hover:text-violet-600 rounded-xl text-left border border-slate-100 transition space-y-2">
+              <i class="fa-solid fa-user-plus text-lg"></i>
+              <p class="font-bold text-sm block">Siswa Baru</p>
+              <span class="text-[11px] text-slate-400 block hidden md:block">Daftarkan siswa kelas</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TABEL GRID JADWAL MENGAJAR DI BERANDA -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+          <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50">
+            <div>
+              <h4 class="font-bold text-slate-800 flex items-center space-x-2">
+                <i class="fa-solid fa-calendar-days text-indigo-500"></i><span>Jadwal Aktif Mengajar Guru</span>
+              </h4>
+              <p class="text-xs text-slate-400 mt-1">Kolom pertama: Jam pelajaran. Kolom horizontal: Hari.</p>
+            </div>
+            
+            <!-- CONTROLLER TOGGLE HARI INI VS SEMUA HARI -->
+            <div class="flex items-center bg-slate-200/60 p-1 rounded-xl self-stretch sm:self-auto">
+              <button id="btn-filter-today" onclick="changeScheduleFilter('today')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition duration-200">
+                Hari Ini
+              </button>
+              <button id="btn-filter-all" onclick="changeScheduleFilter('all')" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition duration-200">
+                Semua Hari
+              </button>
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-center border-collapse min-w-[320px] md:min-w-[600px]">
+              <thead>
+                <tr id="grid-header-row" class="bg-slate-100/80 border-b border-slate-200 text-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                  <!-- Header Diisi Dinamis oleh Javascript -->
+                </tr>
+              </thead>
+              <tbody id="table-grid-schedule-body" class="text-xs divide-y divide-slate-200">
+                <!-- Grid Diisi Dinamis oleh Javascript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOLA KELAS VIEW -->
+      <section id="view-classes" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900">Kelola Kelas</h2>
+            <p class="text-sm text-slate-500">Atur kelompok belajar dan guru pendamping.</p>
+          </div>
+          <button onclick="openClassModal()" class="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md flex justify-center items-center space-x-2 transition duration-200">
+            <i class="fa-solid fa-circle-plus"></i><span>Tambah Kelas</span>
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th class="p-4">Tingkat</th><th class="p-4">Nama Kelas</th><th class="p-4">Wali Kelas / Co-Teacher</th><th class="p-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="table-classes-body" class="text-sm divide-y divide-slate-50"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELOLA SISWA VIEW -->
+      <section id="view-students" class="hidden space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900">Data Siswa</h2>
+            <p class="text-sm text-slate-500">Kelola daftar profil siswa sekolah.</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+            <div class="relative w-full sm:min-w-[200px]">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-magnifying-glass text-sm"></i></span>
+              <input type="text" id="student-search" oninput="renderStudents()" placeholder="Cari nama / NISN..." class="w-full pl-9 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+            </div>
+            <select id="student-filter-class" onchange="renderStudents()" class="w-full sm:w-auto bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">Semua Kelas</option>
+            </select>
+            <button onclick="openStudentModal()" class="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md flex justify-center items-center space-x-2 transition duration-200">
+              <i class="fa-solid fa-user-plus"></i><span>Siswa Baru</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th class="p-4">NISN</th><th class="p-4">Nama Lengkap</th><th class="p-4">L/P</th><th class="p-4">Kelas</th><th class="p-4">No. HP Wali</th><th class="p-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="table-students-body" class="text-sm divide-y divide-slate-50"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- JADWAL VIEW (Dedicated Page) -->
+      <section id="view-schedule" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900">Jadwal Mengajar</h2>
+            <p class="text-sm text-slate-500">Kelola seluruh daftar entri jadwal mengajar Anda.</p>
+          </div>
+          <button onclick="openScheduleModal()" class="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md flex justify-center items-center space-x-2 transition duration-200">
+            <i class="fa-solid fa-plus-circle"></i><span>Tambah Jadwal</span>
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th class="p-4">Hari</th><th class="p-4">Jam Ke-</th><th class="p-4">Mata Pelajaran</th><th class="p-4">Kelas</th><th class="p-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="table-schedule-body" class="text-sm divide-y divide-slate-50"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRESENSI VIEW -->
+      <section id="view-attendance" class="hidden space-y-6">
+        <div class="flex flex-col pb-4 border-b border-slate-200 space-y-4">
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900">Presensi / Absensi</h2>
+            <p class="text-sm text-slate-500">Input presensi harian kelas.</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input type="date" id="att-date" class="w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+            <select id="att-period" class="w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="1">Jam Ke-1</option><option value="2">Jam Ke-2</option><option value="3">Jam Ke-3</option>
+              <option value="4">Jam Ke-4</option><option value="5">Jam Ke-5</option><option value="6">Jam Ke-6</option>
+              <option value="7">Jam Ke-7</option><option value="8">Jam Ke-8</option><option value="9">Jam Ke-9</option><option value="10">Jam Ke-10</option>
+            </select>
+            <select id="att-class" onchange="loadAttendanceList()" class="w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option value="">Pilih Kelas...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="p-4 bg-slate-50 border-b border-slate-100 flex flex-col gap-3">
+            <span class="text-xs font-bold text-slate-500">PILIH CEPAT:</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="setAllAttendance('H')" class="w-full py-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 text-xs font-bold rounded-xl transition">Hadir Semua (H)</button>
+              <button onclick="setAllAttendance('S')" class="w-full py-2 bg-sky-100 text-sky-700 hover:bg-sky-200 text-xs font-bold rounded-xl transition">Sakit Semua (S)</button>
+            </div>
+          </div>
+          
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th class="p-4">Nama Siswa</th><th class="p-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="table-attendance-body" class="text-sm divide-y divide-slate-50">
+                <tr><td colspan="2" class="p-8 text-center text-slate-400 font-medium">Silakan tentukan Kelas, Tanggal & Jam di atas.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="p-4 bg-slate-50 border-t border-slate-100">
+            <button onclick="submitAttendance()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/10 flex justify-center items-center space-x-2 transition">
+              <i class="fa-solid fa-floppy-disk"></i><span>Simpan Presensi</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PENILAIAN VIEW -->
+      <section id="view-grades" class="hidden space-y-6">
+        <div class="flex flex-col pb-4 border-b border-slate-200 space-y-4">
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900">Penilaian Siswa</h2>
+            <p class="text-sm text-slate-500">Input nilai evaluasi KBM.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <input type="date" id="grade-date" class="col-span-2 sm:col-span-1 w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none">
+            <select id="grade-class" onchange="loadGradesList()" class="col-span-2 sm:col-span-1 w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none">
+              <option value="">Pilih Kelas...</option>
+            </select>
+            <input type="text" id="grade-bab" placeholder="BAB (Cth: BAB 1)" class="w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none">
+            <select id="grade-type" class="w-full bg-white rounded-xl border border-slate-200 text-sm px-4 py-2.5 focus:outline-none">
+              <option value="Formatif">Formatif</option><option value="Sumatif">Sumatif</option><option value="Tugas">Tugas</option><option value="Proyek">Proyek</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th class="p-4">Nama Siswa</th><th class="p-4 text-center">Nilai (0-100)</th>
+                </tr>
+              </thead>
+              <tbody id="table-grades-body" class="text-sm divide-y divide-slate-50">
+                <tr><td colspan="2" class="p-8 text-center text-slate-400 font-medium">Lengkapi parameter kelas di atas untuk input nilai.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="p-4 bg-slate-50 border-t border-slate-100">
+            <button onclick="submitGrades()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md flex justify-center items-center space-x-2 transition">
+              <i class="fa-solid fa-floppy-disk"></i><span>Simpan Nilai</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- JURNAL VIEW -->
+      <section id="view-journal" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900">Jurnal Pembelajaran</h2>
+            <p class="text-sm text-slate-500">Catat evaluasi harian KBM.</p>
+          </div>
+          <button onclick="openJournalModal()" class="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md flex justify-center items-center space-x-2 transition duration-200">
+            <i class="fa-solid fa-pen-nib"></i><span>Buat Jurnal Baru</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="journal-cards-container">
+          <!-- JS-populated -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- MOBILE TAB NAVIGATION -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)] pb-safe">
+      <div class="flex justify-around items-center h-16">
+        <button onclick="switchView('dashboard')" class="mobile-nav-btn flex-1 flex flex-col justify-center items-center text-slate-400 hover:text-indigo-600 transition h-full" data-view="dashboard">
+          <i class="fa-solid fa-house text-lg mb-1"></i><span class="text-[10px] font-bold">Beranda</span>
+        </button>
+        <button onclick="switchView('attendance')" class="mobile-nav-btn flex-1 flex flex-col justify-center items-center text-slate-400 hover:text-indigo-600 transition h-full" data-view="attendance">
+          <i class="fa-solid fa-clipboard-user text-lg mb-1"></i><span class="text-[10px] font-bold">Absen</span>
+        </button>
+        <button onclick="switchView('grades')" class="mobile-nav-btn flex-1 flex flex-col justify-center items-center text-slate-400 hover:text-indigo-600 transition h-full" data-view="grades">
+          <i class="fa-solid fa-star text-lg mb-1"></i><span class="text-[10px] font-bold">Nilai</span>
+        </button>
+        <button onclick="switchView('journal')" class="mobile-nav-btn flex-1 flex flex-col justify-center items-center text-slate-400 hover:text-indigo-600 transition h-full" data-view="journal">
+          <i class="fa-solid fa-book text-lg mb-1"></i><span class="text-[10px] font-bold">Jurnal</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- MODAL: KELOLA KELAS -->
+  <div id="modal-class" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-200 p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 id="modal-class-title" class="font-bold text-lg text-slate-800">Tambah Kelas Baru</h3>
+        <button type="button" onclick="closeClassModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-class" onsubmit="saveClass(event)" class="p-5 space-y-4">
+        <input type="hidden" id="class-rowIdx">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Tingkat Kelas</label>
+          <select id="class-grade" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+            <option value="X">Tingkat X</option><option value="XI">Tingkat XI</option><option value="XII">Tingkat XII</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Nama Kelas</label>
+          <input type="text" id="class-name" required placeholder="Contoh: XII MIPA 1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Wali Kelas / Pendamping</label>
+          <input type="text" id="class-coteacher" required placeholder="Contoh: Budi Santoso, S.Pd." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+        </div>
+        <div class="pt-4 flex justify-end space-x-2">
+          <button type="button" onclick="closeClassModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition">Batal</button>
+          <button type="submit" class="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: KELOLA SISWA -->
+  <div id="modal-student" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-200 p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 id="modal-student-title" class="font-bold text-lg text-slate-800">Daftarkan Siswa Baru</h3>
+        <button type="button" onclick="closeStudentModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-student" onsubmit="saveStudent(event)" class="p-5 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-thin">
+        <input type="hidden" id="student-rowIdx">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">NISN</label>
+            <input type="text" id="student-nisn" required placeholder="NISN" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">L/P</label>
+            <select id="student-gender" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              <option value="L">Laki-laki (L)</option><option value="P">Perempuan (P)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Nama Lengkap</label>
+          <input type="text" id="student-fullname" required placeholder="Nama Siswa Sesuai Ijazah" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Alokasi Kelas</label>
+          <select id="student-class" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+            <!-- JS-populated -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Alamat</label>
+          <input type="text" id="student-address" placeholder="Cth: Jl. Diponegoro" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">No. HP Wali</label>
+          <input type="tel" id="student-parent" placeholder="Cth: 0813..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+        </div>
+        <div class="pt-4 flex justify-end space-x-2">
+          <button type="button" onclick="closeStudentModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition">Batal</button>
+          <button type="submit" class="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: KELOLA JADWAL -->
+  <div id="modal-schedule" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-200 p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 id="modal-schedule-title" class="font-bold text-lg text-slate-800">Tambah Jadwal Mengajar</h3>
+        <button type="button" onclick="closeScheduleModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-schedule" onsubmit="saveSchedule(event)" class="p-5 space-y-4">
+        <input type="hidden" id="schedule-rowIdx">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Hari</label>
+            <select id="schedule-day" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              <option value="Senin">Senin</option><option value="Selasa">Selasa</option><option value="Rabu">Rabu</option><option value="Kamis">Kamis</option><option value="Jumat">Jumat</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Jam Ke-</label>
+            <select id="schedule-period" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              <option value="1">Jam 1</option><option value="2">Jam 2</option><option value="3">Jam 3</option>
+              <option value="4">Jam 4</option><option value="5">Jam 5</option><option value="6">Jam 6</option>
+              <option value="7">Jam 7</option><option value="8">Jam 8</option><option value="9">Jam 9</option><option value="10">Jam 10</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Mata Pelajaran</label>
+          <input type="text" id="schedule-subject" required placeholder="Cth: Fisika" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Kelas</label>
+          <select id="schedule-class" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+            <!-- JS-populated -->
+          </select>
+        </div>
+        <div class="pt-4 flex justify-end space-x-2">
+          <button type="button" onclick="closeScheduleModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition">Batal</button>
+          <button type="submit" class="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: KELOLA JURNAL -->
+  <div id="modal-journal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-200 p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-200">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 id="modal-journal-title" class="font-bold text-lg text-slate-800">Jurnal Pembelajaran</h3>
+        <button type="button" onclick="closeJournalModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-journal" onsubmit="saveJournal(event)" class="p-5 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-thin">
+        <input type="hidden" id="journal-rowIdx">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Tanggal</label>
+            <input type="date" id="journal-date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Jam Ke-</label>
+            <select id="journal-period" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              <option value="1">Jam 1</option><option value="2">Jam 2</option><option value="3">Jam 3</option>
+              <option value="4">Jam 4</option><option value="5">Jam 5</option><option value="6">Jam 6</option>
+              <option value="7">Jam 7</option><option value="8">Jam 8</option><option value="9">Jam 9</option><option value="10">Jam 10</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Kelas</label>
+            <select id="journal-class" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+              <!-- JS-populated -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Mata Pelajaran</label>
+            <input type="text" id="journal-subject" required placeholder="Cth: Fisika" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Materi Pembelajaran</label>
+          <input type="text" id="journal-topic" required placeholder="Hukum Newton..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Evaluasi & Catatan</label>
+          <textarea id="journal-evaluation" placeholder="Catatan KBM hari ini..." rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none resize-none"></textarea>
+        </div>
+        <div class="pt-4 flex justify-end space-x-2">
+          <button type="button" onclick="closeJournalModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition">Batal</button>
+          <button type="submit" class="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition">Simpan Jurnal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT UTAMA -->
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwbpuAdFkYFO4PaS7DsyE0B4F9JVmTSgU9nyACv0tPTuT1akB-oR8_hU8X1WC6IC0ex/exec"; 
+    const isAppsScript = typeof google !== 'undefined' && google.script && google.script.run;
+    const isLocalMode = !isAppsScript && (!WEB_APP_URL || WEB_APP_URL === "");
+
+    let currentScheduleFilter = 'today';
+    let appState = { classes: [], students: [], attendance: [], grades: [], journal: [], schedule: [] };
+
+    const mockInitialData = {
+      classes: [
+        { _rowIdx: 2, ClassName: "X MIPA 1", Grade: "X", CoTeacher: "Budi Santoso, S.Pd." },
+        { _rowIdx: 3, ClassName: "XI IPS 2", Grade: "XI", CoTeacher: "Wahyu Tri, S.Pd." }
+      ],
+      students: [
+        { _rowIdx: 2, NISN: "0081234561", FullName: "Ahmad Syarifudin", Gender: "L", ClassName: "X MIPA 1", Address: "Rembang Kota", Phone: "0812", ParentPhone: "0813" },
+        { _rowIdx: 3, NISN: "0081234562", FullName: "Bella Cantika", Gender: "P", ClassName: "X MIPA 1", Address: "Lasem", Phone: "0821", ParentPhone: "0822" }
+      ],
+      attendance: [
+        { _rowIdx: 2, Date: "2026-07-02", Period: 1, ClassName: "X MIPA 1", NISN: "0081234561", FullName: "Ahmad Syarifudin", Status: "H" }
+      ],
+      grades: [
+        { _rowIdx: 2, Date: "2026-07-02", ClassName: "X MIPA 1", BAB: "BAB 1", AssessmentType: "Formatif", NISN: "0081234561", FullName: "Ahmad Syarifudin", Score: 85 }
+      ],
+      journal: [
+        { _rowIdx: 2, Date: "2026-07-02", Period: 1, ClassName: "X MIPA 1", Subject: "Fisika", Topic: "Kinematika Gerak", Evaluation: "Siswa memahami gerak." }
+      ],
+      schedule: [
+        { _rowIdx: 2, Day: "Senin", Period: 1, Subject: "Fisika", Class: "X MIPA 1" },
+        { _rowIdx: 3, Day: "Selasa", Period: 2, Subject: "Matematika", Class: "X MIPA 1" },
+        { _rowIdx: 4, Day: "Rabu", Period: 5, Subject: "Kimia", Class: "XI IPS 2" },
+        { _rowIdx: 5, Day: "Kamis", Period: 3, Subject: "Sejarah", Class: "XI IPS 2" },
+        { _rowIdx: 6, Day: "Jumat", Period: 8, Subject: "Fisika", Class: "X MIPA 1" }
+      ]
+    };
+
+    window.onload = function() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('att-date').value = today;
+      document.getElementById('grade-date').value = today;
+      updateEnvironmentBadge(navigator.onLine);
+      if (isLocalMode) loadMockData();
+      else syncData();
+      switchView('dashboard');
+    };
+
+    window.addEventListener('offline', () => {
+      showToast("Koneksi Terputus", "Anda masuk ke Mode Offline.", "error");
+      updateEnvironmentBadge(false);
+    });
+
+    window.addEventListener('online', () => {
+      showToast("Kembali Online", "Koneksi internet pulih.", "success");
+      updateEnvironmentBadge(true);
+      if(!isLocalMode) syncData();
+    });
+
+    function updateEnvironmentBadge(isOnline) {
+      const envBadges = [document.getElementById('env-badge'), document.getElementById('mobile-env-badge')];
+      envBadges.forEach(badge => {
+        if (!isOnline) {
+           badge.className = "flex items-center space-x-2 text-xs px-3 py-2 rounded-lg bg-rose-500/10 text-rose-500 font-bold transition-colors duration-300 offline-pulse";
+           badge.innerHTML = '<i class="fa-solid fa-wifi-slash text-[10px] md:text-xs"></i> <span>Offline Mode</span>';
+        } else if (isLocalMode) {
+          badge.className = "flex items-center space-x-2 text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-500 font-bold transition-colors duration-300";
+          badge.innerHTML = badge.id === 'env-badge' ? '<i class="fa-solid fa-flask"></i> <span>Simulation Mode (Local)</span>' : '<i class="fa-solid fa-flask text-[9px]"></i> <span>Lokal</span>';
+        } else {
+          badge.className = "flex items-center space-x-2 text-xs px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 font-bold transition-colors duration-300";
+          badge.innerHTML = badge.id === 'env-badge' ? '<i class="fa-solid fa-cloud"></i> <span>Cloud Connected</span>' : '<i class="fa-solid fa-cloud text-[9px]"></i> <span>Cloud</span>';
+        }
+      });
+    }
+
+    function loadMockData() {
+      const cache = localStorage.getItem('sakuguru_cache');
+      if (cache) appState = JSON.parse(cache);
+      else { appState = JSON.parse(JSON.stringify(mockInitialData)); localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); }
+      if(navigator.onLine) showToast("Tersambung", "Aplikasi menggunakan simulasi lokal.", "info");
+      onDataLoaded();
+    }
+
+    function showToast(title, message, type = "success") {
+      const toast = document.getElementById('toast');
+      const iconWrap = document.getElementById('toast-icon-wrapper');
+      const icon = document.getElementById('toast-icon');
+      document.getElementById('toast-title').innerText = title;
+      document.getElementById('toast-message').innerText = message;
+      if (type === "success") { iconWrap.className = "p-2 rounded-lg bg-emerald-500 text-white"; icon.className = "fa-solid fa-circle-check text-lg"; }
+      else if (type === "error") { iconWrap.className = "p-2 rounded-lg bg-rose-500 text-white"; icon.className = "fa-solid fa-circle-xmark text-lg"; }
+      else { iconWrap.className = "p-2 rounded-lg bg-sky-500 text-white"; icon.className = "fa-solid fa-info-circle text-lg"; }
+      toast.className = "fixed top-5 right-5 z-[60] max-w-sm w-full bg-white rounded-xl shadow-xl border border-slate-100 p-4 flex items-center space-x-3 transition-all duration-300 transform translate-y-0 opacity-100";
+      setTimeout(() => { toast.className = "fixed top-5 right-5 z-[60] max-w-sm w-full bg-white rounded-xl shadow-xl border border-slate-100 p-4 flex items-center space-x-3 transition-all duration-300 transform translate-y-[-100px] opacity-0 pointer-events-none"; }, 4000);
+    }
+
+    function toggleLoader(show) {
+      const loader = document.getElementById('loading-overlay');
+      if (show) loader.classList.remove('opacity-0', 'pointer-events-none');
+      else loader.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      const overlay = document.getElementById('mobile-sidebar-overlay');
+      if (sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+      } else {
+        sidebar.classList.add('-translate-x-full'); overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 300);
+      }
+    }
+
+    function syncData() {
+      if (isLocalMode) return loadMockData();
+      if (!navigator.onLine) { showToast("Offline", "Menampilkan data tersimpan dari cache lokal.", "info"); return onDataLoaded(); }
+      toggleLoader(true);
+      
+      if (isAppsScript) {
+        google.script.run.withSuccessHandler(function(response) {
+          toggleLoader(false);
+          if (response.success) { appState = { classes: response.classes, students: response.students, attendance: response.attendance, grades: response.grades, journal: response.journal, schedule: response.schedule }; showToast("Sukses", "Data disinkronkan."); localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); onDataLoaded(); }
+          else showToast("Gagal", response.error, "error");
+        }).withFailureHandler(function(err) { toggleLoader(false); showToast("Gagal", err.toString(), "error"); }).getInitialData();
+      } else {
+        fetch(`${WEB_APP_URL}?action=getInitialData`).then(res => res.json()).then(response => {
+          toggleLoader(false);
+          if (response.success) { appState = { classes: response.classes, students: response.students, attendance: response.attendance, grades: response.grades, journal: response.journal, schedule: response.schedule }; showToast("Sukses", "Data disinkronkan via API."); localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); onDataLoaded(); }
+          else showToast("Gagal", response.error, "error");
+        }).catch(err => {
+          toggleLoader(false); const cache = localStorage.getItem('sakuguru_cache');
+          if(cache) { appState = JSON.parse(cache); onDataLoaded(); showToast("API Gagal", "Memuat data dari cache memori lokal.", "error"); }
+          else showToast("API Gagal", "Pastikan URL Web App benar.", "error");
+        });
+      }
+    }
+
+    function onDataLoaded() {
+      populateDropdowns(); renderDashboard(); renderClasses(); renderStudents(); renderSchedule(); renderJournals();
+    }
+
+    function populateDropdowns() {
+      const clsDropdowns = ['student-class', 'student-filter-class', 'att-class', 'grade-class', 'schedule-class', 'journal-class'];
+      clsDropdowns.forEach(id => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const oldVal = select.value;
+        select.innerHTML = id.includes('filter') ? '<option value="">Semua Kelas</option>' : '<option value="">Pilih Kelas...</option>';
+        appState.classes.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.ClassName; opt.textContent = c.ClassName;
+          select.appendChild(opt);
+        });
+        select.value = oldVal;
+      });
+    }
+
+    function switchView(viewId) {
+      document.querySelectorAll('main > section').forEach(sect => sect.classList.add('hidden'));
+      const target = document.getElementById('view-' + viewId);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.getAttribute('data-view') === viewId) btn.className = "nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-bold bg-indigo-600 text-white shadow-lg shadow-indigo-600/20";
+        else btn.className = "nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 text-sm font-semibold hover:bg-slate-800/60 text-slate-400";
+      });
+
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        if (btn.getAttribute('data-view') === viewId) btn.className = "mobile-nav-btn flex-1 flex flex-col justify-center items-center text-indigo-600 transition h-full";
+        else btn.className = "mobile-nav-btn flex-1 flex flex-col justify-center items-center text-slate-400 hover:text-indigo-600 transition h-full";
+      });
+      if(window.innerWidth < 768) { const sidebar = document.getElementById('main-sidebar'); if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar(); }
+    }
+
+    function changeScheduleFilter(filterType) { currentScheduleFilter = filterType; renderSchedule(); }
+    function getTodayDayName() { const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; const name = days[new Date().getDay()]; return (name === 'Sabtu' || name === 'Minggu') ? 'Senin' : name; }
+
+    function renderDashboard() {
+      document.getElementById('stat-students').innerText = appState.students.length;
+      document.getElementById('stat-classes').innerText = appState.classes.length;
+      if (appState.attendance.length > 0) { const hadirCount = appState.attendance.filter(a => a.Status === 'H').length; document.getElementById('stat-attendance').innerText = Math.round((hadirCount / appState.attendance.length) * 100) + "%"; } else { document.getElementById('stat-attendance').innerText = "0%"; }
+      if (appState.grades.length > 0) { const totalScore = appState.grades.reduce((sum, g) => sum + Number(g.Score || 0), 0); document.getElementById('stat-grades').innerText = (totalScore / appState.grades.length).toFixed(1); } else { document.getElementById('stat-grades').innerText = "0"; }
+    }
+
+    function renderClasses() {
+      const tbody = document.getElementById('table-classes-body'); tbody.innerHTML = '';
+      if (appState.classes.length === 0) return tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 font-medium">Belum ada kelas.</td></tr>`;
+      appState.classes.forEach(c => {
+        tbody.innerHTML += `<tr class="hover:bg-slate-50/50"><td class="p-4 font-bold text-slate-800"><span class="px-2.5 py-1 bg-slate-100 rounded-lg text-xs">${c.Grade}</span></td><td class="p-4 font-semibold text-indigo-600">${c.ClassName}</td><td class="p-4 text-slate-600 font-medium">${c.CoTeacher}</td><td class="p-4 text-center"><button onclick="editClass(${c._rowIdx})" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg mr-1"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteClass(${c._rowIdx})" class="p-2 bg-rose-50 text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+      });
+    }
+
+    function renderStudents() {
+      const tbody = document.getElementById('table-students-body'); tbody.innerHTML = '';
+      const query = document.getElementById('student-search').value.toLowerCase(); const filterClass = document.getElementById('student-filter-class').value;
+      const filtered = appState.students.filter(s => (s.FullName.toLowerCase().includes(query) || s.NISN.includes(query)) && (!filterClass || s.ClassName === filterClass));
+      if (filtered.length === 0) return tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-medium">Siswa tidak ditemukan.</td></tr>`;
+      filtered.forEach(s => {
+        tbody.innerHTML += `<tr class="hover:bg-slate-50/50"><td class="p-4 font-mono text-xs text-slate-500 font-semibold">${s.NISN}</td><td class="p-4 font-bold text-slate-800">${s.FullName}</td><td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-bold ${s.Gender==='L'?'bg-sky-50 text-sky-600':'bg-rose-50 text-rose-600'}">${s.Gender}</span></td><td class="p-4 font-semibold text-slate-700">${s.ClassName}</td><td class="p-4 text-slate-600">${s.ParentPhone || '-'}</td><td class="p-4 text-center"><button onclick="editStudent(${s._rowIdx})" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg mr-1"><i class="fa-solid fa-user-pen"></i></button><button onclick="deleteStudent(${s._rowIdx})" class="p-2 bg-rose-50 text-rose-600 rounded-lg"><i class="fa-solid fa-trash-can"></i></button></td></tr>`;
+      });
+    }
+
+    function renderSchedule() {
+      const tbody = document.getElementById('table-schedule-body'); tbody.innerHTML = '';
+      if (appState.schedule.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 font-medium">Jadwal kosong. Silakan tambahkan jadwal baru.</td></tr>`;
+      } else {
+        appState.schedule.forEach(s => {
+          tbody.innerHTML += `<tr class="hover:bg-slate-50/50"><td class="p-4 font-bold text-slate-800">${s.Day}</td><td class="p-4"><span class="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-semibold text-slate-600">Jam ${s.Period}</span></td><td class="p-4 font-semibold text-indigo-600">${s.Subject}</td><td class="p-4 font-bold text-slate-700">${s.Class}</td><td class="p-4 text-center"><button onclick="editSchedule(${s._rowIdx})" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg mr-1"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteSchedule(${s._rowIdx})" class="p-2 bg-rose-50 text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+        });
+      }
+
+      const tbodyGrid = document.getElementById('table-grid-schedule-body'); const headerRow = document.getElementById('grid-header-row');
+      if (!tbodyGrid || !headerRow) return;
+
+      const listJam = [
+        { type: 'jam', period: 1, label: 'Jam 1', time: '07.00-08.00' }, { type: 'jam', period: 2, label: 'Jam 2', time: '08.00-08.40' },
+        { type: 'jam', period: 3, label: 'Jam 3', time: '08.40-09.20' }, { type: 'jam', period: 4, label: 'Jam 4', time: '09.20-10.00' },
+        { type: 'istirahat', label: 'Istirahat 1', time: '10.00-10.15' }, { type: 'jam', period: 5, label: 'Jam 5', time: '10.15-11.00' },
+        { type: 'jam', period: 6, label: 'Jam 6', time: '11.00-11.45' }, { type: 'istirahat', label: 'Istirahat 2', time: '11.45-12.50' },
+        { type: 'jam', period: 7, label: 'Jam 7', time: '12.50-13.30' }, { type: 'jam', period: 8, label: 'Jam 8', time: '13.30-14.10' },
+        { type: 'jam', period: 9, label: 'Jam 9', time: '14.10-14.50' }, { type: 'jam', period: 10, label: 'Jam 10', time: '14.50-15.30' }
+      ];
+
+      const todayDay = getTodayDayName();
+      const daftarHari = currentScheduleFilter === 'today' ? [todayDay] : ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+      
+      document.getElementById('btn-filter-today').className = currentScheduleFilter === 'today' ? "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow" : "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800";
+      document.getElementById('btn-filter-all').className = currentScheduleFilter === 'all' ? "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow" : "flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800";
+
+      let headerHTML = `<th class="p-3 border-r border-slate-200 bg-slate-200/60 sticky left-0 z-10 w-36">Jam Mengajar</th>`;
+      daftarHari.forEach(hari => { headerHTML += `<th class="p-3 border-r border-slate-200 ${(hari === todayDay && currentScheduleFilter === 'all') ? 'bg-indigo-50 text-indigo-700 font-black' : ''}">${hari}</th>`; });
+      headerRow.innerHTML = headerHTML;
+
+      tbodyGrid.innerHTML = '';
+      
+      // Filter hanya jam yang memiliki jadwal kelas pada hari yang terpilih
+      const activePeriods = appState.schedule.filter(x => daftarHari.includes(x.Day)).map(x => Number(x.Period));
+      const hasClasses = activePeriods.length > 0;
+      const minPeriod = hasClasses ? Math.min(...activePeriods) : -1;
+      const maxPeriod = hasClasses ? Math.max(...activePeriods) : -1;
+
+      const filteredListJam = listJam.filter(jamItem => {
+        if (jamItem.type === 'jam') return activePeriods.includes(jamItem.period);
+        if (jamItem.type === 'istirahat') {
+          // Istirahat hanya ditampilkan jika ada rentang mengajar di sekitarnya
+          if (jamItem.label === 'Istirahat 1') return minPeriod <= 4 && maxPeriod >= 5;
+          if (jamItem.label === 'Istirahat 2') return minPeriod <= 6 && maxPeriod >= 7;
+        }
+        return false;
+      });
+
+      if (filteredListJam.length === 0) {
+        tbodyGrid.innerHTML = `<tr><td colspan="${daftarHari.length + 1}" class="p-8 text-center text-slate-400 font-medium text-xs">Tidak ada jadwal mengajar pada hari yang dipilih.</td></tr>`;
+      } else {
+        filteredListJam.forEach(jamItem => {
+          const tr = document.createElement('tr');
+          tr.className = jamItem.type === 'istirahat' ? "bg-slate-100/40 italic" : "hover:bg-slate-50/50 transition duration-150";
+          tr.innerHTML = `<td class="p-3 font-bold border-r border-slate-200 bg-slate-100/50 text-left sticky left-0 z-10 flex flex-col justify-center h-16 w-36"><span class="${jamItem.type === 'istirahat' ? 'text-slate-400 text-[10px]' : 'text-slate-700 text-xs'}">${jamItem.label}</span><span class="text-[9px] text-slate-400 font-medium">${jamItem.time}</span></td>`;
+          
+          daftarHari.forEach(hari => {
+            let td = document.createElement('td'); td.className = "p-2 border-r border-slate-200 min-w-[120px] h-16 vertical-middle text-center";
+            if (jamItem.type === 'istirahat') { td.className = "p-2 border-r border-slate-200 bg-slate-100/20 text-slate-400 text-[10px] font-semibold"; td.innerText = "Istirahat"; } 
+            else {
+              const item = appState.schedule.find(x => x.Day === hari && Number(x.Period) === jamItem.period);
+              if (item) {
+                td.className = "p-2 border-r border-slate-200 bg-indigo-50/80 rounded-lg text-center relative group";
+                td.innerHTML = `<div class="font-extrabold text-indigo-700 leading-tight text-[11px]">${item.Subject}</div><div class="text-[10px] text-slate-600 font-bold mt-0.5">${item.Class}</div><div class="flex gap-1.5 justify-center mt-1"><button onclick="editSchedule(${item._rowIdx})" class="p-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded transition"><i class="fa-solid fa-pen text-[9px]"></i></button><button onclick="deleteSchedule(${item._rowIdx})" class="p-1 bg-rose-100 hover:bg-rose-200 text-rose-600 rounded transition"><i class="fa-solid fa-trash text-[9px]"></i></button></div>`;
+              } else { td.innerHTML = `<span class="text-slate-300">-</span>`; }
+            }
+            tr.appendChild(td);
+          });
+          tbodyGrid.appendChild(tr);
+        });
+      }
+    }
+
+    function renderJournals() {
+      const container = document.getElementById('journal-cards-container'); container.innerHTML = '';
+      if (appState.journal.length === 0) return container.innerHTML = `<div class="col-span-full p-12 bg-white rounded-2xl border border-dashed border-slate-200 text-center text-slate-400 font-medium">Jurnal mengajar masih kosong.</div>`;
+      const sorted = [...appState.journal].sort((a,b) => new Date(b.Date) - new Date(a.Date));
+      sorted.forEach(j => {
+        container.innerHTML += `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3 relative"><div class="flex items-center justify-between"><span class="px-2.5 py-1 bg-indigo-50 text-indigo-600 font-bold rounded-lg text-xs">${j.ClassName}</span><div class="flex items-center space-x-1.5 text-xs text-slate-400 font-bold"><i class="fa-solid fa-clock"></i><span>Jam Ke-${j.Period}</span></div></div><div><h4 class="font-extrabold text-slate-800 text-base leading-snug">${j.Subject} — ${j.Topic}</h4><p class="text-xs text-slate-400 font-semibold mt-1"><i class="fa-solid fa-calendar mr-1.5"></i>${j.Date}</p></div><div class="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 italic">"${j.Evaluation || '-'}"</div><div class="pt-2 flex justify-end space-x-1.5"><button onclick="editJournal(${j._rowIdx})" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs"><i class="fa-solid fa-pen-nib"></i></button><button onclick="deleteJournal(${j._rowIdx})" class="p-2 bg-rose-50 text-rose-600 rounded-lg text-xs"><i class="fa-solid fa-trash-can"></i></button></div></div>`;
+      });
+    }
+
+    function showModal(id) { const m = document.getElementById(id); m.classList.remove('opacity-0', 'pointer-events-none'); m.querySelector('div').classList.remove('scale-95'); }
+    function hideModal(id) { const m = document.getElementById(id); m.classList.add('opacity-0', 'pointer-events-none'); m.querySelector('div').classList.add('scale-95'); }
+    function openClassModal() { document.getElementById('form-class').reset(); document.getElementById('class-rowIdx').value=''; document.getElementById('modal-class-title').innerText="Tambah Kelas"; showModal('modal-class'); }
+    function closeClassModal() { hideModal('modal-class'); }
+    function openStudentModal() { document.getElementById('form-student').reset(); document.getElementById('student-rowIdx').value=''; document.getElementById('modal-student-title').innerText="Siswa Baru"; showModal('modal-student'); }
+    function closeStudentModal() { hideModal('modal-student'); }
+    function openScheduleModal() { document.getElementById('form-schedule').reset(); document.getElementById('schedule-rowIdx').value=''; document.getElementById('modal-schedule-title').innerText="Tambah Jadwal"; showModal('modal-schedule'); }
+    function closeScheduleModal() { hideModal('modal-schedule'); }
+    function openJournalModal() { document.getElementById('form-journal').reset(); document.getElementById('journal-rowIdx').value=''; document.getElementById('journal-date').value = new Date().toISOString().split('T')[0]; document.getElementById('modal-journal-title').innerText="Jurnal Baru"; showModal('modal-journal'); }
+    function closeJournalModal() { hideModal('modal-journal'); }
+
+    function simpanData(type, idForm, payload, stateArray, rowIdxStr) {
+      const isEdit = !!rowIdxStr;
+      if (isLocalMode || !navigator.onLine) {
+        if(isEdit) { const idx = stateArray.findIndex(x => x._rowIdx == rowIdxStr); stateArray[idx] = { ...stateArray[idx], ...payload }; } 
+        else { payload._rowIdx = stateArray.length > 0 ? Math.max(...stateArray.map(x => x._rowIdx)) + 1 : 2; stateArray.push(payload); }
+        localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); showToast("Disimpan", "Disimpan ke cache lokal.", !navigator.onLine ? "info" : "success"); onDataLoaded(); hideModal('modal-' + type); return;
+      }
+      toggleLoader(true);
+      const sheetName = type === 'class' ? 'Classes' : type === 'student' ? 'Students' : type === 'schedule' ? 'Schedule' : 'Journal';
+      if (isAppsScript) {
+        if (isEdit) google.script.run.withSuccessHandler(r => { toggleLoader(false); if(r.success) { syncData(); hideModal('modal-' + type); } else showToast("Gagal", r.error, "error"); }).updateSheetRow(sheetName, Number(rowIdxStr), payload);
+        else google.script.run.withSuccessHandler(r => { toggleLoader(false); if(r.success) { syncData(); hideModal('modal-' + type); } else showToast("Gagal", r.error, "error"); }).addSheetRow(sheetName, payload);
+      } else {
+        fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: isEdit ? "updateSheetRow" : "addSheetRow", sheetName: sheetName, rowIdx: rowIdxStr, data: payload }) }).then(res => res.json()).then(r => { toggleLoader(false); if(r.success) { syncData(); hideModal('modal-' + type); } else showToast("Gagal API", r.error, "error"); }).catch(err => { toggleLoader(false); showToast("Koneksi API Gagal", err.toString(), "error"); });
+      }
+    }
+
+    function hapusData(type, rowIdx, sheetName, stateArray) {
+      if(!confirm("Yakin ingin menghapus data ini?")) return;
+      if(isLocalMode || !navigator.onLine) { appState[type] = stateArray.filter(x => x._rowIdx != rowIdx); localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); showToast("Dihapus", "Dihapus dari cache.", !navigator.onLine ? "info" : "success"); onDataLoaded(); } 
+      else {
+        toggleLoader(true);
+        if (isAppsScript) google.script.run.withSuccessHandler(r => { toggleLoader(false); if(r.success) syncData(); else showToast("Gagal", r.error, "error"); }).deleteSheetRow(sheetName, Number(rowIdx));
+        else fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "deleteSheetRow", sheetName: sheetName, rowIdx: rowIdx }) }).then(res => res.json()).then(r => { toggleLoader(false); if(r.success) syncData(); else showToast("Gagal API", r.error, "error"); }).catch(err => { toggleLoader(false); showToast("Koneksi API Gagal", err.toString(), "error"); });
+      }
+    }
+
+    function saveClass(e) { e.preventDefault(); simpanData('class', 'form-class', { Grade: document.getElementById('class-grade').value, ClassName: document.getElementById('class-name').value.trim(), CoTeacher: document.getElementById('class-coteacher').value.trim() }, appState.classes, document.getElementById('class-rowIdx').value); }
+    function editClass(rowIdx) { const t = appState.classes.find(x => x._rowIdx == rowIdx); if(!t) return; document.getElementById('class-rowIdx').value=t._rowIdx; document.getElementById('class-grade').value=t.Grade; document.getElementById('class-name').value=t.ClassName; document.getElementById('class-coteacher').value=t.CoTeacher; document.getElementById('modal-class-title').innerText="Edit Kelas"; showModal('modal-class'); }
+    function deleteClass(rowIdx) { hapusData('classes', rowIdx, 'Classes', appState.classes); }
+
+    function saveStudent(e) { e.preventDefault(); simpanData('student', 'form-student', { NISN: document.getElementById('student-nisn').value.trim(), FullName: document.getElementById('student-fullname').value.trim(), Gender: document.getElementById('student-gender').value, ClassName: document.getElementById('student-class').value, Address: document.getElementById('student-address').value.trim(), ParentPhone: document.getElementById('student-parent').value.trim() }, appState.students, document.getElementById('student-rowIdx').value); }
+    function editStudent(rowIdx) { const t = appState.students.find(x => x._rowIdx == rowIdx); if(!t) return; document.getElementById('student-rowIdx').value=t._rowIdx; document.getElementById('student-nisn').value=t.NISN; document.getElementById('student-fullname').value=t.FullName; document.getElementById('student-gender').value=t.Gender; document.getElementById('student-class').value=t.ClassName; document.getElementById('student-address').value=t.Address; document.getElementById('student-parent').value=t.ParentPhone; document.getElementById('modal-student-title').innerText="Edit Siswa"; showModal('modal-student'); }
+    function deleteStudent(rowIdx) { hapusData('students', rowIdx, 'Students', appState.students); }
+
+    function saveSchedule(e) { e.preventDefault(); simpanData('schedule', 'form-schedule', { Day: document.getElementById('schedule-day').value, Period: Number(document.getElementById('schedule-period').value), Subject: document.getElementById('schedule-subject').value.trim(), Class: document.getElementById('schedule-class').value }, appState.schedule, document.getElementById('schedule-rowIdx').value); }
+    function editSchedule(rowIdx) { const t = appState.schedule.find(x => x._rowIdx == rowIdx); if(!t) return; document.getElementById('schedule-rowIdx').value=t._rowIdx; document.getElementById('schedule-day').value=t.Day; document.getElementById('schedule-period').value=t.Period; document.getElementById('schedule-subject').value=t.Subject; document.getElementById('schedule-class').value=t.Class; document.getElementById('modal-schedule-title').innerText="Edit Jadwal"; showModal('modal-schedule'); }
+    function deleteSchedule(rowIdx) { hapusData('schedule', rowIdx, 'Schedule', appState.schedule); }
+
+    function saveJournal(e) { e.preventDefault(); simpanData('journal', 'form-journal', { Date: document.getElementById('journal-date').value, Period: Number(document.getElementById('journal-period').value), ClassName: document.getElementById('journal-class').value, Subject: document.getElementById('journal-subject').value.trim(), Topic: document.getElementById('journal-topic').value.trim(), Evaluation: document.getElementById('journal-evaluation').value.trim() }, appState.journal, document.getElementById('journal-rowIdx').value); }
+    function editJournal(rowIdx) { const t = appState.journal.find(x => x._rowIdx == rowIdx); if(!t) return; document.getElementById('journal-rowIdx').value=t._rowIdx; document.getElementById('journal-date').value=t.Date; document.getElementById('journal-period').value=t.Period; document.getElementById('journal-class').value=t.ClassName; document.getElementById('journal-subject').value=t.Subject; document.getElementById('journal-topic').value=t.Topic; document.getElementById('journal-evaluation').value=t.Evaluation; document.getElementById('modal-journal-title').innerText="Edit Jurnal"; showModal('modal-journal'); }
+    function deleteJournal(rowIdx) { hapusData('journal', rowIdx, 'Journal', appState.journal); }
+
+    function loadAttendanceList() {
+      const cls = document.getElementById('att-class').value; const tbody = document.getElementById('table-attendance-body');
+      if (!cls) return tbody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-slate-400">Pilih parameter di atas.</td></tr>`;
+      const std = appState.students.filter(s => s.ClassName === cls);
+      if (std.length === 0) return tbody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-slate-400">Siswa tidak ada.</td></tr>`;
+      tbody.innerHTML = '';
+      std.forEach(s => { tbody.innerHTML += `<tr><td class="p-4"><p class="font-bold text-slate-800">${s.FullName}</p><p class="text-[10px] font-mono text-slate-400">${s.NISN}</p></td><td class="p-4 text-center"><div class="inline-flex flex-wrap gap-1" data-nisn="${s.NISN}" data-name="${s.FullName}"><label><input type="radio" name="att-${s.NISN}" value="H" checked class="hidden peer"><span class="cursor-pointer px-2 py-1 rounded bg-slate-100 peer-checked:bg-emerald-500 peer-checked:text-white text-xs font-bold transition">H</span></label><label><input type="radio" name="att-${s.NISN}" value="S" class="hidden peer"><span class="cursor-pointer px-2 py-1 rounded bg-slate-100 peer-checked:bg-sky-500 peer-checked:text-white text-xs font-bold transition">S</span></label><label><input type="radio" name="att-${s.NISN}" value="I" class="hidden peer"><span class="cursor-pointer px-2 py-1 rounded bg-slate-100 peer-checked:bg-amber-500 peer-checked:text-white text-xs font-bold transition">I</span></label><label><input type="radio" name="att-${s.NISN}" value="A" class="hidden peer"><span class="cursor-pointer px-2 py-1 rounded bg-slate-100 peer-checked:bg-rose-500 peer-checked:text-white text-xs font-bold transition">A</span></label></div></td></tr>`; });
+    }
+    function setAllAttendance(status) { document.querySelectorAll(`#table-attendance-body input[type="radio"][value="${status}"]`).forEach(r => r.checked = true); }
+
+    function submitAttendance() {
+      const cls = document.getElementById('att-class').value; const dt = document.getElementById('att-date').value; const pr = Number(document.getElementById('att-period').value);
+      if(!cls || !dt) return showToast("Gagal", "Lengkapi form.", "error");
+      const dtSave = []; document.querySelectorAll('#table-attendance-body tr').forEach(r => { const div = r.querySelector('div[data-nisn]'); if(!div) return; dtSave.push({ Date: dt, Period: pr, ClassName: cls, NISN: div.getAttribute('data-nisn'), FullName: div.getAttribute('data-name'), Status: div.querySelector('input:checked').value }); });
+      if(isLocalMode || !navigator.onLine) { appState.attendance = appState.attendance.filter(a => !(a.Date === dt && a.Period === pr && a.ClassName === cls)); dtSave.forEach(newItem => { newItem._rowIdx = appState.attendance.length > 2 ? Math.max(...appState.attendance.map(a => a._rowIdx || 0)) + 1 : 2; appState.attendance.push(newItem); }); localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); showToast("Disimpan", "Tersimpan lokal.", !navigator.onLine ? "info" : "success"); onDataLoaded(); switchView('dashboard'); } 
+      else { toggleLoader(true); if (isAppsScript) google.script.run.withSuccessHandler(r => { toggleLoader(false); if(r.success){ showToast("Sukses", "Tersimpan di Sheet."); syncData(); switchView('dashboard'); } else showToast("Gagal", r.error, "error"); }).saveMultipleRows("Attendance", dtSave); else fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "saveMultipleRows", sheetName: "Attendance", data: dtSave }) }).then(res => res.json()).then(r => { toggleLoader(false); if(r.success) { showToast("Sukses", "Tersimpan via API."); syncData(); switchView('dashboard'); } else showToast("Gagal", r.error, "error"); }).catch(err => { toggleLoader(false); showToast("Koneksi API Gagal", err.toString(), "error"); }); }
+    }
+
+    function loadGradesList() {
+      const cls = document.getElementById('grade-class').value; const tbody = document.getElementById('table-grades-body');
+      if (!cls) return tbody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-slate-400">Pilih parameter kelas.</td></tr>`;
+      const std = appState.students.filter(s => s.ClassName === cls);
+      if (std.length === 0) return tbody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-slate-400">Siswa tidak ada.</td></tr>`;
+      tbody.innerHTML = '';
+      std.forEach(s => { tbody.innerHTML += `<tr><td class="p-4"><p class="font-bold text-slate-800">${s.FullName}</p><p class="text-[10px] font-mono text-slate-400">${s.NISN}</p></td><td class="p-4 text-center"><input type="number" min="0" max="100" placeholder="0-100" data-nisn="${s.NISN}" data-name="${s.FullName}" class="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"></td></tr>`; });
+    }
+
+    function submitGrades() {
+      const cls = document.getElementById('grade-class').value; const dt = document.getElementById('grade-date').value; const bab = document.getElementById('grade-bab').value.trim(); const tp = document.getElementById('grade-type').value;
+      if(!cls || !dt || !bab) return showToast("Gagal", "Lengkapi parameter.", "error");
+      const dtSave = []; document.querySelectorAll('#table-grades-body input[type="number"]').forEach(input => { if(input.value === "") return; dtSave.push({ Date: dt, ClassName: cls, BAB: bab, AssessmentType: tp, NISN: input.getAttribute('data-nisn'), FullName: input.getAttribute('data-name'), Score: Number(input.value) }); });
+      if(dtSave.length === 0) return showToast("Kosong", "Masukkan 1 nilai.", "error");
+      if(isLocalMode || !navigator.onLine) { appState.grades = appState.grades.filter(g => !(g.Date === dt && g.ClassName === cls && g.BAB === bab && g.AssessmentType === tp)); dtSave.forEach(newItem => { newItem._rowIdx = appState.grades.length > 2 ? Math.max(...appState.grades.map(g => g._rowIdx || 0)) + 1 : 2; appState.grades.push(newItem); }); localStorage.setItem('sakuguru_cache', JSON.stringify(appState)); showToast("Disimpan", "Tersimpan lokal.", !navigator.onLine ? "info" : "success"); onDataLoaded(); switchView('dashboard'); } 
+      else { toggleLoader(true); if (isAppsScript) google.script.run.withSuccessHandler(r => { toggleLoader(false); if(r.success){ showToast("Sukses", "Nilai di-push."); syncData(); switchView('dashboard'); } else showToast("Gagal", r.error, "error"); }).saveMultipleRows("Grades", dtSave); else fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "saveMultipleRows", sheetName: "Grades", data: dtSave }) }).then(res => res.json()).then(r => { toggleLoader(false); if(r.success) { showToast("Sukses", "Nilai di-push via API."); syncData(); switchView('dashboard'); } else showToast("Gagal API", r.error, "error"); }).catch(err => { toggleLoader(false); showToast("Koneksi API Gagal", err.toString(), "error"); }); }
+    }
+
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('pwa-install-sidebar')?.classList.remove('hidden'); document.getElementById('pwa-install-banner')?.classList.remove('hidden'); });
+    function triggerPwaInstall() { if (!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.then((choiceResult) => { if (choiceResult.outcome === 'accepted') showToast("Berhasil dipasang", "SakuGuru siap dijalankan!"); deferredPrompt = null; document.getElementById('pwa-install-sidebar')?.classList.add('hidden'); document.getElementById('pwa-install-banner')?.classList.add('hidden'); }); }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        try {
+          const swCode = `
+            const CACHE_NAME = 'sakuguru-cache-v3.0';
+            const assetsToCache = ['/', 'https://cdn.tailwindcss.com', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'];
+            self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(assetsToCache))); });
+            self.addEventListener('fetch', event => {
+              if (event.request.url.includes('exec') || event.request.url.includes('script.google.com')) {
+                event.respondWith(fetch(event.request).then(response => { let responseClone = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone)); return response; }).catch(() => { return caches.match(event.request); }));
+              } else { event.respondWith(caches.match(event.request).then(response => response || fetch(event.request))); }
+            });`;
+          const blob = new Blob([swCode], { type: 'application/javascript' });
+          navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+        } catch(e) {}
+      });
+    }
+  </script>
+</body>
+</html>
